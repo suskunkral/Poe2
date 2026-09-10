@@ -1,0 +1,35 @@
+name: PoE2 Autonomous DPS Simulation Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  schedule:
+    - cron: "0 0 * * *" # Her gece otomatik çalışır
+  workflow_dispatch: # Manuel çalıştırma butonu ekler
+
+jobs:
+  run-agents:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Repositoriyi Çek
+      uses: actions/checkout@v3
+
+    - name: Python Kurulumu
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: 1. Ajan 1 & Şef - Live PoE2 Data Fetch
+      run: python fetch_poe_data.py
+
+    - name: 2. Uzman Ajanlar & PoB Engine - DPS Calculation
+      run: python standalone_lab.py
+
+    - name: 3. Ajan 4 - Raporu Repoya Otomatik İşle
+      run: |
+        git config --global user.name "PoE2-Agent-Bot"
+        git config --global user.email "bot@poe2-simulation.local"
+        git add data/ reviews/
+        git diff-index --quiet HEAD || git commit -m "auto: update poe2 dps top 10 report"
+        git push
